@@ -1,0 +1,45 @@
+THRESHOLD=5
+
+# The partition you want to monitor (e.g., '/' for the root partition)
+PARTITION="/"
+
+# --- Main Logic ---
+
+echo "Starting disk usage check..."
+
+# Get the disk usage percentage for the specified partition.
+# This command is robust and should work on all Ubuntu systems.
+CURRENT_USAGE=$(df -P "$PARTITION" | awk 'NR==2 {print $5}' | sed 's/%//')
+
+# Check if the extracted value is a valid number.
+if [[ "$CURRENT_USAGE" =~ ^[0-9]+$ ]]; then
+
+    echo "Current usage for $PARTITION is $CURRENT_USAGE%"
+
+    # Compare the current usage to the threshold.
+    if [ "$CURRENT_USAGE" -ge "$THRESHOLD" ]; then
+
+        echo "Disk usage on $PARTITION is high! Writing alert to log file."
+
+        # The alert message to be written to the log.
+        ALERT_MESSAGE="
+        [$(date)] ALERT: Low Disk Space on Server
+        Partition: $PARTITION
+        Current Usage: $CURRENT_USAGE%
+        Threshold: $THRESHOLD%
+        --------------------
+        "
+        # Append the alert message to a log file.
+        # This will create the file if it doesn't exist.
+        echo "$ALERT_MESSAGE" >> ~/disk_usage_alerts.log
+
+        echo "Alert written to log file."
+else
+        echo "Disk usage for $PARTITION is normal ($CURRENT_USAGE%). No alert sent."
+    fi
+else
+    echo "Error: Could not determine disk usage for $PARTITION. Exiting."
+fi
+
+echo "Disk usage check complete."
+
